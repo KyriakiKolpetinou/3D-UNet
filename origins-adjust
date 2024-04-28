@@ -1,0 +1,60 @@
+root = Path("/content/imagesTr")
+label = Path("/content/labelsTr")
+
+def get_origin(file_path):
+    """Read the origin of a NIfTI file."""
+    sitk_image = sitk.ReadImage(str(file_path))
+    return sitk_image.GetOrigin()
+
+# Paths to the directories containing the images and labels
+images_dir = Path('/content/imagesTr')
+labels_dir = Path('/content/labelsTr')
+
+# Iterate over the image files and compare origins with corresponding labels
+mismatched_origins = []
+for image_file in images_dir.glob('*.nii.gz'):
+    # Corresponding label file path
+    label_file = labels_dir / image_file.name
+
+    if label_file.is_file():
+        # Read origins of image and label
+        image_origin = get_origin(image_file)
+        label_origin = get_origin(label_file)
+
+        # Compare origins
+        if image_origin != label_origin:
+            mismatched_origins.append(image_file.name)
+            print(f"Origin mismatch for {image_file.name}: Image origin {image_origin}, Label origin {label_origin}")
+
+# Summary
+if mismatched_origins:
+    print(f"Found mismatches in {len(mismatched_origins)} pairs of files.")
+else:
+    print("All origins match.")
+
+
+def adjust_origin(image_path, label_path):
+    # Read the image and label
+    image_sitk = sitk.ReadImage(str(image_path))
+    label_sitk = sitk.ReadImage(str(label_path))
+
+    # Get the origin of the image
+    image_origin = image_sitk.GetOrigin()
+
+    # Set the origin of the label to match the image
+    label_sitk.SetOrigin(image_origin)
+
+    # Write the adjusted label back to disk
+    sitk.WriteImage(label_sitk, str(label_path))
+
+# Paths to the directories containing the images and labels
+images_dir = Path('/content/imagesTr')
+labels_dir = Path('/content/labelsTr')
+
+# Adjust the origins for each pair of image and label files
+for image_file in images_dir.glob('*.nii.gz'):
+    label_file = labels_dir / image_file.name
+    if label_file.is_file():
+        adjust_origin(image_file, label_file)
+
+print("Adjusted origins for all image-label pairs.")
